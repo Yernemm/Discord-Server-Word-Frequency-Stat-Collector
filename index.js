@@ -23,7 +23,7 @@ const SERVER_ID = "";
 const MSG_LIMIT = 100; 
 
 //Ignored channels
-const IGNORE_CHANNELS = [""];
+const IGNORE_CHANNELS = [];
 
 //-----------------------------------
 
@@ -141,30 +141,37 @@ client.on('ready', () => {
 
 function getAllMsgs(channelId, before = null) {
     debugCounter++;
+    console.log(before);
     
     return new Promise((resolve, reject) => {
         console.log(debugCounter + " | Getting messages... " + " [" + client.channels.cache.get(channelId).name + "]");
         client.channels.cache.get(channelId)
-        .messages.fetch(before ? {limit: MSG_LIMIT, before: before} : {limit: MSG_LIMIT})
+        .messages.fetch(before ? {limit: MSG_LIMIT, before: before, cache: false} : {limit: MSG_LIMIT, cache: false})
         .then(msgs => {
             
-            msgsArray = [...msgs.values()];
+            let msgsArray = [...msgs.values()];
             
             if(msgs.last() === undefined){
                 resolve([]);
             }else{
-
-                if(msgs.length < 100){
+                //console.log(msgsArray.length)
+                if(msgsArray.length < 100){
                     console.log(client.channels.cache.get(channelId).name + " DONE!")
+
                     resolve(msgsArray);
                 }else{
 
                     let lastId = msgs.last().id;
-    
+                    
                     //console.log(`[${client.channels.cache.get(channelId).name}] ${msgsArray[0].content}`);
                     getAllMsgs(channelId, lastId)
                     .then(restmsgs => {
-                        resolve(msgsArray.concat(restmsgs));
+                        //console.log(msgsArray.concat(restmsgs).length);
+                        //console.log([...new Set(msgsArray.concat(restmsgs))].length)
+                        //resolve(msgsArray.concat(restmsgs));
+                        console.log(msgsArray[0].content)
+                        console.log(restmsgs[0].content)
+                        resolve([...msgsArray, ...restmsgs]);
                     });
     
                 }
