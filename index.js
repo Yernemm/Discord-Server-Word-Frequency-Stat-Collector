@@ -29,6 +29,14 @@ const MSG_LIMIT = 100;
 
 const Discord = require('discord.js');
 const fs = require('fs');
+
+const gateway = new Discord.WebSocketManager({
+	token,
+	intents: Discord.GatewayIntentBits.GuildMessages | Discord.GatewayIntentBits.MessageContent,
+	rest,
+});
+
+
 const client = new Discord.Client();
 
 let wordcount = 0;
