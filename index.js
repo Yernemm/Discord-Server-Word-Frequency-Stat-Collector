@@ -7,6 +7,8 @@
 
 */
 
+debugCounter = 0;
+
 //Edit these values:
 
 //Discord bot token
@@ -20,6 +22,9 @@ const SERVER_ID = "";
 //How many messages to ask for in one request (max 100)
 const MSG_LIMIT = 100; 
 
+//Ignored channels
+const IGNORE_CHANNELS = [""];
+
 //-----------------------------------
 
 
@@ -27,17 +32,18 @@ const MSG_LIMIT = 100;
 
 
 
-const Discord = require('discord.js');
+const { Client, GatewayIntentBits } = require('discord.js');
 const fs = require('fs');
 
-const gateway = new Discord.WebSocketManager({
-	token,
-	intents: Discord.GatewayIntentBits.GuildMessages | Discord.GatewayIntentBits.MessageContent,
-	rest,
+
+const client = new Client({
+	intents: [
+		GatewayIntentBits.Guilds,
+		GatewayIntentBits.GuildMessages,
+		GatewayIntentBits.MessageContent,
+		GatewayIntentBits.GuildMembers
+	],
 });
-
-
-const client = new Discord.Client();
 
 let wordcount = 0;
 let bef = "";
@@ -134,13 +140,15 @@ client.on('ready', () => {
 });
 
 function getAllMsgs(channelId, before = null) {
-
+    debugCounter++;
+    
     return new Promise((resolve, reject) => {
-
+        console.log(debugCounter + " | Getting messages... " + " [" + client.channels.cache.get(channelId).name + "]");
         client.channels.cache.get(channelId)
         .messages.fetch(before ? {limit: MSG_LIMIT, before: before} : {limit: MSG_LIMIT})
         .then(msgs => {
-
+            
+            msgsArray = [...msgs.values()];
             
             if(msgs.last() === undefined){
                 resolve([]);
@@ -148,15 +156,15 @@ function getAllMsgs(channelId, before = null) {
 
                 if(msgs.length < 100){
                     console.log(client.channels.cache.get(channelId).name + " DONE!")
-                    resolve(msgs.array());
+                    resolve(msgsArray);
                 }else{
 
                     let lastId = msgs.last().id;
     
-                    console.log(`[${client.channels.cache.get(channelId).name}] ${msgs.array()[0].content}`);
+                    //console.log(`[${client.channels.cache.get(channelId).name}] ${msgsArray[0].content}`);
                     getAllMsgs(channelId, lastId)
                     .then(restmsgs => {
-                        resolve(msgs.array().concat(restmsgs));
+                        resolve(msgsArray.concat(restmsgs));
                     });
     
                 }
@@ -176,17 +184,20 @@ function getAllMsgs(channelId, before = null) {
 }
 
 function getAllMsgsInServer(serverId){
-    
+    console.log("Getting messages in server...");
     return new Promise((resole, reject)=>{
 
         let channels = [];
 
         client.guilds.cache.get(serverId)
         .channels.cache.each(chan=>{
-            if(chan.type == "text" && !chan.name.includes('-log')){
+            if((chan.type == 0 || chan.type == 11) && !IGNORE_CHANNELS.includes(chan.id)){
                channels.push(getAllMsgs(chan.id));
             }
         });
+
+        //console.log(client.guilds.cache.get(serverId).channels.cache)
+        console.log(channels);
 
         let allwordlists = [];
 
